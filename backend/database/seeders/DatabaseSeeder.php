@@ -16,11 +16,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $demo = User::factory()->create([
-            'name' => 'Doctor IE',
-            'email' => 'doctor-ie@example.com',
-            'password' => 'segredo123',
-        ]);
+        // Idempotente: seguro para rodar no boot do container a cada restart.
+        $demo = User::firstOrCreate(
+            ['email' => 'doctor-ie@example.com'],
+            ['name' => 'Doctor IE', 'password' => 'segredo123'],
+        );
+
+        // Ja populado: nao duplica os livros.
+        if (Book::query()->exists()) {
+            return;
+        }
 
         $this->seedCuratedBooks($demo->id);
 

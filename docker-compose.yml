@@ -17,3 +17,38 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: doctor_ie_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      # Chave fixa para persistir tokens entre restarts (dev).
+      APP_KEY: base64:2mF0m3qk7cJ8pQ9rTdWbXyZ1aB2cD3eF4gH5iJ6kL7M=
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: doctor_ie
+      DB_USERNAME: doctor_ie
+      DB_PASSWORD: doctor_ie
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # A URL e resolvida no navegador do usuario, entao aponta para o host.
+        API_BASE_URL: http://localhost:8000/api
+    container_name: doctor_ie_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
