@@ -1,5 +1,7 @@
 # Gestão de Livros e Índices
 
+![CI](https://github.com/anthonymengottii/desafio-doctor-ie/actions/workflows/ci.yml/badge.svg)
+
 Sistema full-stack para cadastro de livros com índices hierárquicos (sumário recursivo),
 autenticação por token, filtros de busca e identificação de livros com títulos
 semanticamente equivalentes.

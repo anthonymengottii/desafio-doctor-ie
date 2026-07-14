@@ -16,12 +16,27 @@ class BooksListScreen extends ConsumerStatefulWidget {
 class _BooksListScreenState extends ConsumerState<BooksListScreen> {
   final _titulo = TextEditingController();
   final _indice = TextEditingController();
+  final _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
+    _scroll.dispose();
     _titulo.dispose();
     _indice.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Carrega a proxima pagina ao chegar perto do fim.
+    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 300) {
+      ref.read(booksListProvider.notifier).loadMore();
+    }
   }
 
   void _aplicarFiltros() {
@@ -103,16 +118,21 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
             child: books.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('Erro: $e')),
-              data: (list) {
+              data: (state) {
+                final list = state.items;
                 if (list.isEmpty) {
                   return const Center(child: Text('Nenhum livro encontrado.'));
                 }
                 return RefreshIndicator(
                   onRefresh: () async => ref.refresh(booksListProvider.future),
                   child: ListView.separated(
-                    itemCount: list.length,
+                    controller: _scroll,
+                    // +1 para o rodape (loader "carregar mais" ou fim da lista).
+                    itemCount: list.length + 1,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (_, i) {
+                      if (i == list.length) return _footer(state);
+
                       final book = list[i];
                       return ListTile(
                         title: Text(book.titulo),
@@ -131,6 +151,19 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _footer(BooksListState state) {
+    if (state.hasMore || state.loadingMore) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Center(child: Text('Fim da lista')),
     );
   }
 }

@@ -1,6 +1,7 @@
 import '../../core/api_client.dart';
 import 'models/book.dart';
 import 'models/book_index.dart';
+import 'models/books_page.dart';
 
 /// Acesso aos endpoints de livros, indices e similaridade.
 class BookRepository {
@@ -8,14 +9,19 @@ class BookRepository {
 
   final ApiClient _api;
 
-  Future<List<Book>> list({String? titulo, String? tituloDoIndice}) async {
-    final query = <String, dynamic>{};
+  Future<BooksPage> list({
+    String? titulo,
+    String? tituloDoIndice,
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final query = <String, dynamic>{'page': page, 'per_page': perPage};
     if (titulo != null && titulo.isNotEmpty) query['titulo'] = titulo;
     if (tituloDoIndice != null && tituloDoIndice.isNotEmpty) {
       query['titulo_do_indice'] = tituloDoIndice;
     }
     final res = await _api.get('/books', query: query);
-    return _parseList(res.data);
+    return BooksPage.fromResponse(res.data);
   }
 
   Future<Book> show(int id) async {
