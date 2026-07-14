@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router.dart';
-import 'core/toast.dart';
 
 void main() {
   runApp(const ProviderScope(child: DoctorIeApp()));
@@ -18,7 +17,6 @@ class DoctorIeApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Gestao de Livros',
       debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: scaffoldMessengerKey,
       theme: ThemeData(
         colorSchemeSeed: Colors.indigo,
         useMaterial3: true,

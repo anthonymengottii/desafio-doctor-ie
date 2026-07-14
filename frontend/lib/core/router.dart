@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,10 +9,14 @@ import '../features/books/screens/books_list_screen.dart';
 import '../features/books/screens/similar_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 
+/// Navigator raiz: usado para exibir toasts em overlay (posicao livre na tela).
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/books',
     redirect: (context, state) {
       // Sem usuario resolvido (carregando no boot ou deslogado) => login.
