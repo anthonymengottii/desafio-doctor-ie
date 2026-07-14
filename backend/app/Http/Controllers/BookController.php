@@ -22,7 +22,7 @@ class BookController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $filters = $request->only(['titulo', 'titulo_do_indice']);
+        $filters = $request->only(['titulo', 'titulo_do_indice', 'per_page', 'page']);
 
         return BookResource::collection($this->books->list($filters));
     }
@@ -59,15 +59,17 @@ class BookController extends Controller
         return (new BookResource($book))->response()->setStatusCode(201);
     }
 
-    public function update(UpdateBookRequest $request, Book $book): BookResource
+    public function update(UpdateBookRequest $request, int $id): BookResource
     {
+        $book = $this->books->getById($id);
         $this->assertOwner($request, $book);
 
         return new BookResource($this->books->update($book, $request->validated()));
     }
 
-    public function destroy(Request $request, Book $book): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
+        $book = $this->books->getById($id);
         $this->assertOwner($request, $book);
         $this->books->delete($book);
 

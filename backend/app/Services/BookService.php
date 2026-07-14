@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\ApiException;
 use App\Models\Book;
 use App\Models\BookIndex;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 
@@ -77,12 +78,12 @@ class BookService
     }
 
     /**
-     * Lista livros com filtros opcionais.
+     * Lista livros com filtros opcionais, paginado.
      *
-     * @param  array<string, mixed>  $filters  titulo, titulo_do_indice
-     * @return EloquentCollection<int, Book>
+     * @param  array<string, mixed>  $filters  titulo, titulo_do_indice, per_page, page
+     * @return LengthAwarePaginator<Book>
      */
-    public function list(array $filters = []): EloquentCollection
+    public function list(array $filters = []): LengthAwarePaginator
     {
         $query = Book::with('user')->orderByDesc('id');
 
@@ -99,15 +100,25 @@ class BookService
             $query->whereIn('id', $bookIds ?: [0]);
         }
 
-        $books = $query->get();
+        $perPage = (int) ($filters['per_page'] ?? 20);
+        $perPage = max(1, min($perPage, 100));
 
-        foreach ($books as $book) {
-            $indices = $book->indices()->get();
+        /** @var LengthAwarePaginator<Book> $page */
+        $page = $query->paginate($perPage);
+
+        // Carrega todos os indices da pagina em UMA consulta (evita N+1).
+        $bookIds = $page->getCollection()->modelKeys();
+        $indicesByBook = BookIndex::whereIn('book_id', $bookIds)
+            ->get()
+            ->groupBy('book_id');
+
+        foreach ($page->getCollection() as $book) {
+            $indices = $indicesByBook->get($book->id, new EloquentCollection());
             $allowed = $prune[$book->id] ?? null;
             $book->indexTree = $this->tree->buildTree($indices, $allowed);
         }
 
-        return $books;
+        return $page;
     }
 
     /**
