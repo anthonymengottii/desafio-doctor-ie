@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../auth/auth_providers.dart';
 import '../book_providers.dart';
+import 'book_form_screen.dart';
 
 class BooksListScreen extends ConsumerStatefulWidget {
   const BooksListScreen({super.key});
@@ -46,7 +47,7 @@ class _BooksListScreenState extends ConsumerState<BooksListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/books/new'),
+        onPressed: () => showBookFormModal(context),
         icon: const Icon(Icons.add),
         label: const Text('Novo livro'),
       ),

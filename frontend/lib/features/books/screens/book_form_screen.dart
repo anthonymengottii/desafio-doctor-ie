@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../book_providers.dart';
 import '../models/book_index.dart';
 
-/// No editavel da arvore de indices (usado apenas na tela de formulario).
+/// No editavel da arvore de indices (usado apenas no formulario).
 class _EditNode {
   _EditNode({required this.titulo, required this.pagina, List<_EditNode>? filhos})
       : filhos = filhos ?? [];
@@ -27,18 +27,77 @@ class _EditNode {
       );
 }
 
-class BookFormScreen extends ConsumerStatefulWidget {
+/// Abre o formulario de novo livro em um modal. Resolve `true` se salvou.
+Future<bool?> showBookFormModal(BuildContext context, {int? bookId}) {
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => Dialog(
+      insetPadding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      bookId == null ? 'Novo livro' : 'Editar livro',
+                      style: Theme.of(dialogContext).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(dialogContext),
+                  ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: BookFormView(
+                bookId: bookId,
+                onDone: () => Navigator.pop(dialogContext, true),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Tela de rota que envolve o formulario (usada para edicao via URL).
+class BookFormScreen extends StatelessWidget {
   const BookFormScreen({super.key, this.bookId});
 
   final int? bookId;
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(bookId == null ? 'Novo livro' : 'Editar livro')),
+      body: BookFormView(bookId: bookId, onDone: () => context.go('/books')),
+    );
+  }
+}
+
+/// Formulario de livro reutilizavel (tela cheia ou modal).
+/// Chama [onDone] apos salvar com sucesso.
+class BookFormView extends ConsumerStatefulWidget {
+  const BookFormView({super.key, this.bookId, required this.onDone});
+
+  final int? bookId;
+  final VoidCallback onDone;
+
   bool get isEdit => bookId != null;
 
   @override
-  ConsumerState<BookFormScreen> createState() => _BookFormScreenState();
+  ConsumerState<BookFormView> createState() => _BookFormViewState();
 }
 
-class _BookFormScreenState extends ConsumerState<BookFormScreen> {
+class _BookFormViewState extends ConsumerState<BookFormView> {
   final _formKey = GlobalKey<FormState>();
   final _titulo = TextEditingController();
   final _paginas = TextEditingController();
@@ -157,7 +216,7 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
         await repo.create(titulo: titulo, numeroPaginas: paginas, indices: indices);
       }
       ref.invalidate(booksListProvider);
-      if (mounted) context.go('/books');
+      if (mounted) widget.onDone();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -170,60 +229,58 @@ class _BookFormScreenState extends ConsumerState<BookFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_carregando) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.isEdit ? 'Editar livro' : 'Novo livro')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextFormField(
-              controller: _titulo,
-              decoration: const InputDecoration(labelText: 'Titulo'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Informe o titulo' : null,
-            ),
-            TextFormField(
-              controller: _paginas,
-              decoration: const InputDecoration(labelText: 'Numero de paginas'),
-              keyboardType: TextInputType.number,
-              validator: (v) {
-                final n = int.tryParse(v?.trim() ?? '');
-                return (n == null || n < 1) ? 'Numero de paginas invalido' : null;
-              },
-            ),
-            const Divider(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Indices', style: Theme.of(context).textTheme.titleMedium),
-                TextButton.icon(
-                  onPressed: () => _editarNo(null, destino: _raizes),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar raiz'),
-                ),
-              ],
-            ),
-            if (_raizes.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(8),
-                child: Text('Nenhum indice. Adicione ao menos um se desejar.'),
+    return Form(
+      key: _formKey,
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.all(16),
+        children: [
+          TextFormField(
+            controller: _titulo,
+            decoration: const InputDecoration(labelText: 'Titulo'),
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Informe o titulo' : null,
+          ),
+          TextFormField(
+            controller: _paginas,
+            decoration: const InputDecoration(labelText: 'Numero de paginas'),
+            keyboardType: TextInputType.number,
+            validator: (v) {
+              final n = int.tryParse(v?.trim() ?? '');
+              return (n == null || n < 1) ? 'Numero de paginas invalido' : null;
+            },
+          ),
+          const Divider(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Indices', style: Theme.of(context).textTheme.titleMedium),
+              TextButton.icon(
+                onPressed: () => _editarNo(null, destino: _raizes),
+                icon: const Icon(Icons.add),
+                label: const Text('Adicionar raiz'),
               ),
-            for (final no in _raizes) _NoEditor(node: no, lista: _raizes, screen: this),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _salvando ? null : _salvar,
-              child: _salvando
-                  ? const SizedBox(
-                      height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Salvar'),
+            ],
+          ),
+          if (_raizes.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: Text('Nenhum indice. Adicione ao menos um se desejar.'),
             ),
-          ],
-        ),
+          for (final no in _raizes) _NoEditor(node: no, lista: _raizes, screen: this),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _salvando ? null : _salvar,
+            child: _salvando
+                ? const SizedBox(
+                    height: 20, width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Salvar'),
+          ),
+        ],
       ),
     );
   }
@@ -235,7 +292,7 @@ class _NoEditor extends StatelessWidget {
 
   final _EditNode node;
   final List<_EditNode> lista;
-  final _BookFormScreenState screen;
+  final _BookFormViewState screen;
 
   @override
   Widget build(BuildContext context) {
