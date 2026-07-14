@@ -1,30 +1,64 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:frontend/main.dart';
+import 'package:frontend/features/books/models/book.dart';
+import 'package:frontend/features/books/models/book_index.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('Parsing dos models (contrato da API)', () {
+    test('BookIndex parseia subindices recursivamente', () {
+      final json = {
+        'id': 1,
+        'titulo': 'Capitulo 1',
+        'pagina': 1,
+        'subindices': [
+          {'id': 2, 'titulo': 'Introducao', 'pagina': 2, 'subindices': []},
+        ],
+      };
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      final index = BookIndex.fromJson(json);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      expect(index.titulo, 'Capitulo 1');
+      expect(index.subindices, hasLength(1));
+      expect(index.subindices.first.titulo, 'Introducao');
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('Book parseia usuario_publicador e arvore de indices', () {
+      final json = {
+        'id': 10,
+        'titulo': 'Clean Code',
+        'numero_paginas': 450,
+        'usuario_publicador': {'id': 1, 'nome': 'Bill', 'email': 'bill@example.com'},
+        'indices': [
+          {
+            'titulo': 'Capitulo 1',
+            'pagina': 1,
+            'subindices': [
+              {'titulo': 'Introducao', 'pagina': 2, 'subindices': []},
+            ],
+          },
+        ],
+      };
+
+      final book = Book.fromJson(json);
+
+      expect(book.titulo, 'Clean Code');
+      expect(book.numeroPaginas, 450);
+      expect(book.usuarioPublicador?.nome, 'Bill');
+      expect(book.indices.first.subindices.first.titulo, 'Introducao');
+    });
+
+    test('toPayload gera formato aceito pela API (sem id)', () {
+      final index = BookIndex(
+        id: 5,
+        titulo: 'Parte I',
+        pagina: 10,
+        subindices: [BookIndex(titulo: 'Cap 1', pagina: 11)],
+      );
+
+      final payload = index.toPayload();
+
+      expect(payload.containsKey('id'), isFalse);
+      expect(payload['titulo'], 'Parte I');
+      expect((payload['subindices'] as List).first['titulo'], 'Cap 1');
+    });
   });
 }
