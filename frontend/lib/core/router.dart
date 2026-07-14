@@ -14,9 +14,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/books',
     redirect: (context, state) {
-      // Enquanto carrega o usuario atual, nao redireciona.
-      if (auth.isLoading) return null;
-
+      // Sem usuario resolvido (carregando no boot ou deslogado) => login.
+      // Evita montar a lista antes de ter token e disparar um 401 na tela.
       final logged = auth.valueOrNull != null;
       final onLogin = state.matchedLocation == '/login';
 
