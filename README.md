@@ -137,7 +137,7 @@ php artisan key:generate
 php artisan migrate --seed  # cria schema, dados demo e ~5000 livros para teste de performance
 php artisan serve           # http://127.0.0.1:8000
 ```
-Usuário demo do seeder: **bill@example.com** / **segredo123**.
+Usuário demo do seeder: **doctor-ie@example.com** / **segredo123**.
 
 ### 3. Frontend
 ```bash
