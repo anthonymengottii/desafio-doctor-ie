@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/toast.dart';
 import '../book_providers.dart';
 import '../models/book_index.dart';
 
@@ -216,6 +217,7 @@ class _BookFormViewState extends ConsumerState<BookFormView> {
         await repo.create(titulo: titulo, numeroPaginas: paginas, indices: indices);
       }
       ref.invalidate(booksListProvider);
+      showToast(widget.isEdit ? 'Livro atualizado com sucesso' : 'Livro cadastrado com sucesso');
       if (mounted) widget.onDone();
     } catch (e) {
       if (mounted) {

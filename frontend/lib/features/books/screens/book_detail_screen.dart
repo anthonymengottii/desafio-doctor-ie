@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/toast.dart';
 import '../book_providers.dart';
 import '../widgets/index_tree_view.dart';
 
@@ -27,6 +28,7 @@ class BookDetailScreen extends ConsumerWidget {
     try {
       await ref.read(bookRepositoryProvider).delete(id);
       ref.invalidate(booksListProvider);
+      showToast('Livro excluido com sucesso');
       if (context.mounted) context.go('/books');
     } catch (e) {
       if (context.mounted) {
