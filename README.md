@@ -10,6 +10,17 @@ semanticamente equivalentes.
 - **Frontend:** Flutter 3 + Riverpod
 - **Banco:** PostgreSQL via Docker (extensões `pg_trgm` e `unaccent`)
 
+## Sumário
+
+- [Telas](#telas)
+- [Arquitetura](#arquitetura)
+- [Modelo de dados](#modelo-de-dados)
+- [Decisões técnicas](#decisões-técnicas)
+- [Endpoints](#endpoints)
+- [Exemplos de API](#exemplos-de-api)
+- [Como executar](#como-executar)
+- [Testes e verificação](#testes-e-verificação)
+
 ---
 
 ## Telas
@@ -135,34 +146,123 @@ Todas as rotas de livros exigem `Authorization: Bearer <token>`.
 
 ---
 
+## Exemplos de API
+
+### Autenticar
+
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"doctor-ie@example.com","password":"segredo123"}'
+# => { "token": "1|abc...", "user": { "id": 1, "nome": "Doctor IE", "email": "..." } }
+```
+
+### Criar livro (`POST /api/books`)
+
+Payload com a árvore de índices recursiva:
+
+```json
+{
+  "titulo": "Clean Code",
+  "numero_paginas": 450,
+  "indices": [
+    {
+      "titulo": "Capítulo 1",
+      "pagina": 1,
+      "subindices": [
+        { "titulo": "Introdução", "pagina": 2, "subindices": [] }
+      ]
+    }
+  ]
+}
+```
+
+### Listar (`GET /api/books`)
+
+Resposta (paginada) no contrato do enunciado:
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "titulo": "Clean Code",
+      "usuario_publicador": { "id": 1, "nome": "Doctor IE" },
+      "numero_paginas": 450,
+      "indices": [
+        {
+          "titulo": "Capítulo 1",
+          "pagina": 1,
+          "subindices": [
+            { "titulo": "Introdução", "pagina": 2, "subindices": [] }
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": { "current_page": 1, "last_page": 251, "total": 5008 }
+}
+```
+
+### Filtros e similaridade
+
+```bash
+# Por título
+GET /api/books?titulo=clean
+
+# Por título de índice (retorna o livro com o índice casado e seus ascendentes)
+GET /api/books?titulo_do_indice=Introdução
+
+# Similares a um título livre (ignora acento/caixa, trata plural/radical)
+GET /api/books/similares?titulo=Código Limpo
+
+# Similares a um livro existente
+GET /api/books/1/similares
+```
+
+---
+
 ## Como executar
 
-### Pré-requisitos
-- Docker, PHP 8.2+, Composer, Flutter 3.
+Há dois caminhos: **tudo via Docker** (recomendado) ou **manual (dev)**.
 
-### 1. Banco (Docker)
+### Opção A — Docker full-stack (um comando)
+
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
-Sobe o PostgreSQL na porta host **5433** com `pg_trgm`/`unaccent` já habilitadas.
 
-### 2. Backend
+Sobe os três serviços; na primeira subida o backend migra e popula o banco automaticamente:
+
+| Serviço | URL / porta |
+|---|---|
+| PostgreSQL | `localhost:5433` (com `pg_trgm`/`unaccent`) |
+| API (Laravel) | http://localhost:8000 |
+| App (Flutter Web) | http://localhost:8080 |
+
+Login demo: **doctor-ie@example.com** / **segredo123**.
+
+### Opção B — Manual (dev)
+
+**Pré-requisitos:** Docker (só p/ o Postgres), PHP 8.2+, Composer, Flutter 3.
+
 ```bash
+# 1. Banco
+docker compose up -d postgres      # Postgres na porta 5433
+
+# 2. Backend
 cd backend
 composer install
-cp .env.example .env        # já aponta para o Postgres do Docker (porta 5433)
+cp .env.example .env               # já aponta para o Postgres do Docker (porta 5433)
 php artisan key:generate
-php artisan migrate --seed  # cria schema, dados demo e ~5000 livros para teste de performance
-php artisan serve           # http://127.0.0.1:8000
-```
-Usuário demo do seeder: **doctor-ie@example.com** / **segredo123**.
+php artisan migrate --seed         # schema + dados demo + ~5000 livros (performance)
+php artisan serve                  # http://127.0.0.1:8000
 
-### 3. Frontend
-```bash
-cd frontend
+# 3. Frontend
+cd ../frontend
 flutter pub get
-flutter run -d chrome       # ou -d windows
-# URL da API configurável: flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
+flutter run -d chrome              # ou -d windows
+# API configurável: flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
 ```
 
 ---
@@ -188,3 +288,7 @@ flutter test        # parsing recursivo do contrato da API
 Com ~5000 livros (seeder), a consulta de similaridade usa os índices GIN
 (`Bitmap Index Scan` em `books_titulo_trgm_idx` e `books_titulo_tsv_idx`) e executa em
 poucos milissegundos. Verificável com `EXPLAIN ANALYZE`.
+
+### Integração contínua
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda a cada push:
+testes do backend (Postgres real como service) + `flutter analyze`/`flutter test` no frontend.
