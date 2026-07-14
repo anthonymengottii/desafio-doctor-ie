@@ -23,6 +23,15 @@ class Book extends Model
     ];
 
     /**
+     * Arvore de indices montada em memoria para serializacao (raizes com
+     * "childrenTree"). Propriedade real — nao e coluna, entao nunca e
+     * persistida pelo save() do Eloquent.
+     *
+     * @var array<int, BookIndex>|null
+     */
+    public ?array $indexTree = null;
+
+    /**
      * Usuario publicador do livro.
      *
      * @return BelongsTo<User, $this>

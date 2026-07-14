@@ -79,4 +79,33 @@ class SimilarityTest extends TestCase
     {
         $this->getJson('/api/books/similares')->assertStatus(422);
     }
+
+    public function test_ordena_por_score_de_similaridade(): void
+    {
+        // Match exato deve rankear acima de match fraco.
+        $this->book('Clean Code');
+        $this->book('Clean Coder');
+
+        $data = $this->getJson('/api/books/similares?titulo='.urlencode('Clean Code'))
+            ->assertOk()->json('data');
+
+        $this->assertNotEmpty($data);
+        $this->assertSame('Clean Code', $data[0]['titulo']);
+    }
+
+    public function test_sem_candidatos_retorna_lista_vazia(): void
+    {
+        $this->book('Clean Code');
+
+        $this->getJson('/api/books/similares?titulo=xyztermosemmatchnenhum')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_similares_de_livro_inexistente_retorna_404(): void
+    {
+        $this->getJson('/api/books/999999/similares')
+            ->assertStatus(404)
+            ->assertJsonPath('error', 'Livro nao encontrado');
+    }
 }

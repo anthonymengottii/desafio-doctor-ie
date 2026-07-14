@@ -77,4 +77,66 @@ class AuthTest extends TestCase
             ->assertOk()
             ->assertJsonPath('user.email', $user->email);
     }
+
+    public function test_logout_revoga_o_token_usado(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('api')->plainTextToken;
+        $tokenId = explode('|', $token)[0];
+
+        $this->assertDatabaseHas('personal_access_tokens', ['id' => $tokenId]);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/auth/logout')
+            ->assertNoContent();
+
+        // Token usado foi removido -> nao autentica mais requisicoes futuras.
+        $this->assertDatabaseMissing('personal_access_tokens', ['id' => $tokenId]);
+    }
+
+    public function test_registro_rejeita_senha_curta(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'name' => 'Bill',
+            'email' => 'bill@example.com',
+            'password' => 'curta',
+        ])->assertStatus(422)
+            ->assertJsonPath('error', 'Dados invalidos')
+            ->assertJsonStructure(['errors' => ['password']]);
+    }
+
+    public function test_registro_rejeita_email_invalido(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'name' => 'Bill',
+            'email' => 'nao-e-email',
+            'password' => 'segredo123',
+        ])->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['email']]);
+    }
+
+    public function test_registro_rejeita_nome_ausente(): void
+    {
+        $this->postJson('/api/auth/register', [
+            'email' => 'bill@example.com',
+            'password' => 'segredo123',
+        ])->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['name']]);
+    }
+
+    public function test_login_com_email_inexistente_falha(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'email' => 'ninguem@example.com',
+            'password' => 'segredo123',
+        ])->assertStatus(401)->assertJsonPath('error', 'Credenciais invalidas');
+    }
+
+    public function test_login_rejeita_email_ausente(): void
+    {
+        $this->postJson('/api/auth/login', [
+            'password' => 'segredo123',
+        ])->assertStatus(422)
+            ->assertJsonStructure(['errors' => ['email']]);
+    }
 }

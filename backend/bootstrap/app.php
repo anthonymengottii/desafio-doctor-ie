@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (ValidationException $e) {
             return response()->json([
                 'error' => 'Dados invalidos',
-                'details' => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         });
 
