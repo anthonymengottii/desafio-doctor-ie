@@ -17,5 +17,9 @@ Route::prefix('auth')->group(function () {
 
 // Livros. Todas as rotas protegidas por token.
 Route::middleware('auth:sanctum')->group(function () {
+    // Rotas de similaridade antes do apiResource para nao colidir com {book}.
+    Route::get('books/similares', [BookController::class, 'similarByText']);
+    Route::get('books/{book}/similares', [BookController::class, 'similar']);
+
     Route::apiResource('books', BookController::class);
 });
