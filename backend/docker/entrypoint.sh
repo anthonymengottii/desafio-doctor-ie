@@ -1,13 +1,8 @@
 #!/bin/sh
 set -e
 
-# Garante um .env (as variaveis de DB/APP vem do ambiente do compose).
-[ -f .env ] || cp .env.example .env
-
-# Gera APP_KEY apenas se nao veio pelo ambiente.
-if [ -z "$APP_KEY" ]; then
-  php artisan key:generate --force
-fi
+# Configuracao vem 100% do ambiente (docker-compose). Nao criamos .env para
+# evitar que valores conflitantes (ex.: DB_HOST local) vazem em runtime.
 
 # Aguarda o Postgres aceitar conexoes.
 echo "Aguardando o banco em ${DB_HOST}:${DB_PORT}..."
