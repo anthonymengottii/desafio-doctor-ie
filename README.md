@@ -12,6 +12,22 @@ semanticamente equivalentes.
 
 ---
 
+## Telas
+
+| Login | Listagem + filtros |
+|:---:|:---:|
+| ![Login](docs/screenshots/login.png) | ![Listagem](docs/screenshots/lista.png) |
+
+| Detalhe (árvore de índices) | Cadastro (modal) |
+|:---:|:---:|
+| ![Detalhe](docs/screenshots/detalhe.png) | ![Cadastro](docs/screenshots/cadastro.png) |
+
+| Edição | Livros similares |
+|:---:|:---:|
+| ![Edição](docs/screenshots/edicao.png) | ![Similares](docs/screenshots/similares.png) |
+
+---
+
 ## Arquitetura
 
 O projeto segue uma **arquitetura em camadas modular**: o controller apenas valida e delega,
