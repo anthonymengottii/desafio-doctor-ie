@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../auth/auth_providers.dart';
 import 'book_repository.dart';
 import 'models/book.dart';
 
@@ -23,8 +24,11 @@ class BookFilters {
 
 final bookFiltersProvider = StateProvider<BookFilters>((ref) => const BookFilters());
 
-/// Lista de livros reativa aos filtros.
+/// Lista de livros reativa aos filtros e ao estado de autenticacao.
+/// Observar o auth garante um novo fetch (com token) apos o login, evitando
+/// reaproveitar um estado de erro 401 gerado antes de autenticar.
 final booksListProvider = FutureProvider<List<Book>>((ref) {
+  ref.watch(authControllerProvider);
   final filters = ref.watch(bookFiltersProvider);
   return ref.watch(bookRepositoryProvider).list(
         titulo: filters.titulo,
