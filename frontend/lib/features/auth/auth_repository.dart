@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../core/api_client.dart';
 import '../../core/token_storage.dart';
 import 'models/user.dart';
@@ -28,8 +30,17 @@ class AuthRepository {
 
   Future<User?> currentUser() async {
     if (await _tokens.read() == null) return null;
-    final res = await _api.get('/auth/me');
-    return User.fromJson((res.data as Map<String, dynamic>)['user'] as Map<String, dynamic>);
+    try {
+      final res = await _api.get('/auth/me');
+      return User.fromJson((res.data as Map<String, dynamic>)['user'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      // Token invalido/expirado: limpa e trata como deslogado (sem erro).
+      if (e.response?.statusCode == 401) {
+        await _tokens.clear();
+        return null;
+      }
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
